@@ -13,13 +13,17 @@ function ProtectedRoute({ children }) {
   const [authenticated, setAuthenticated] = React.useState(false);
 
   React.useEffect(() => {
-    const token = JSON.parse(localStorage.getItem('user'))?.idToken;
+    const token = localStorage.getItem("accessToken"); // Updated to use accessToken
     if (!token) {
       setAuthenticated(false);
       setLoading(false);
     } else {
       axios
-        .post(`${API_BASE_URL}/api/auth/check`, {}, { headers: { Authorization: `Bearer ${token}` } })
+        .post(
+          `${API_BASE_URL}/api/auth/check/`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
         .then(() => {
           setAuthenticated(true);
           setLoading(false);
@@ -32,8 +36,13 @@ function ProtectedRoute({ children }) {
   }, []);
 
   if (loading) {
-    return <div className="text-white bg-dark text-center vh-100">Loading...</div>;
+    return (
+      <div className="text-white bg-dark text-center vh-100">
+        Loading...
+      </div>
+    );
   }
+
   return authenticated ? children : <Navigate to="/login" />;
 }
 

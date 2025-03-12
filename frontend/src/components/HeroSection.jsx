@@ -8,13 +8,21 @@ export default function HeroSection() {
     const [name, setName] = useState(""); // For entering the name to join queue
     const [isLoading, setIsLoading] = useState(false);
 
-    // Function to automatically join the queue with a given name.
+    // Helper to include JWT in headers if available.
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem("accessToken");
+        return token
+            ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+            : { "Content-Type": "application/json" };
+    };
+
+    // Automatically join the queue with a given name.
     // Saves both the queue ID and the name in localStorage.
     const joinQueueAutomatically = (queueName) => {
         setIsLoading(true);
-        fetch(`${API_BASE_URL}/api/queue`, {
+        fetch(`${API_BASE_URL}/api/queue/`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ name: queueName }),
         })
             .then((res) => {
@@ -37,11 +45,13 @@ export default function HeroSection() {
             });
     };
 
-    // Function to fetch the current queue status using the stored queue ID.
-    // If the response is a 404, it automatically calls joinQueueAutomatically.
+    // Fetch the current queue status using the stored queue ID.
+    // If the response is a 404, automatically call joinQueueAutomatically.
     const fetchQueueStatus = (queueId) => {
         setIsLoading(true);
-        fetch(`${API_BASE_URL}/api/queue/search/${queueId}`)
+        fetch(`${API_BASE_URL}/api/queue/search/${queueId}/`, {
+            headers: getAuthHeaders(),
+        })
             .then((res) => {
                 if (res.status === 404) {
                     throw new Error("NotFound");
@@ -86,7 +96,7 @@ export default function HeroSection() {
         };
     }, [showModal]);
 
-    // When the modal opens, if a queue ID exists in localStorage, fetch its status immediately.
+    // When the modal opens, if a queue ID exists, fetch its status immediately.
     useEffect(() => {
         if (showModal) {
             const storedQueueId = localStorage.getItem("queueId");
@@ -119,7 +129,6 @@ export default function HeroSection() {
             <div
                 className="banner-header full-height valign bg-img bg-fixed"
                 data-overlay-light={0}
-
             >
                 <div className="container">
                     <div className="row content-justify-center">
@@ -131,7 +140,9 @@ export default function HeroSection() {
                                     <br />
                                     HAIR SALON & BARBER SHOP
                                 </h1>
-                                <h5>483 Bay Street, Toronto. Appointment: 416-212-3051</h5>
+                                <h5>
+                                    483 Bay Street, Toronto. Appointment: 416-212-3051
+                                </h5>
                                 <a href="#Appointment" className="button-1 mt-20 mr-20">
                                     Book Appointment<span />
                                 </a>
@@ -185,7 +196,8 @@ export default function HeroSection() {
                                                 <strong>Your Queue ID:</strong> {queueData.id}
                                             </p>
                                             <p>
-                                                <strong>Current Position:</strong> {queueData.position}
+                                                <strong>Current Position:</strong>{" "}
+                                                {queueData.position}
                                             </p>
                                         </div>
                                     ) : (

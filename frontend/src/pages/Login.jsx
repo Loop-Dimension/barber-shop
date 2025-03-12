@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../api/api';
 
 function Login() {
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(''); // used as username here
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const navigate = useNavigate();
@@ -12,15 +12,18 @@ function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-                email,
+            // Using the JWT token obtain endpoint
+            const response = await axios.post(`${API_BASE_URL}/api/auth/token/`, {
+                username: email,  // If your app expects a username, you can rename the label accordingly.
                 password,
             });
-            localStorage.setItem('user', JSON.stringify(response.data));
+            // Store the tokens in localStorage
+            localStorage.setItem('accessToken', response.data.access);
+            localStorage.setItem('refreshToken', response.data.refresh);
             navigate('/dashboard');
         } catch (err) {
-            console.log(err);
-            const errorMsg = err.response?.data?.error?.message || err.message;
+            console.error(err);
+            const errorMsg = err.response?.data?.detail || err.message;
             setError(`Error logging in: ${errorMsg}`);
         }
     };
@@ -32,9 +35,9 @@ function Login() {
                 {error && <div className="alert alert-danger">{error}</div>}
                 <form onSubmit={handleSubmit}>
                     <div className="mb-3">
-                        <label className="form-label">Email</label>
+                        <label className="form-label">Username</label>
                         <input
-                            type="email"
+                            type="text"
                             className="form-control bg-dark text-white"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}

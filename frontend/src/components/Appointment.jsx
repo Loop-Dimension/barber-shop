@@ -4,23 +4,36 @@ import Swal from "sweetalert2";
 
 export default function Appointment() {
     const [barbers, setBarbers] = useState([]);
+    const [services, setServices] = useState([]);
     const [selectedBarber, setSelectedBarber] = useState("");
+    const [selectedService, setSelectedService] = useState(""); // stores service id
     const [date, setDate] = useState("");
     const [availableSlots, setAvailableSlots] = useState([]);
     const [selectedSlot, setSelectedSlot] = useState("");
     const [customerName, setCustomerName] = useState("");
     const [phone, setPhone] = useState("");
-    const [service, setService] = useState("");
+    const [email, setEmail] = useState(""); // New field added
+    const [gender, setGender] = useState(""); // New field added
 
+    // Fetch barbers on mount
     useEffect(() => {
         fetchBarbers();
+        fetchServices();
     }, []);
 
     const fetchBarbers = () => {
-        fetch(`${API_BASE_URL}/api/barbers`)
+        fetch(`${API_BASE_URL}/api/barbers/list/`)
             .then((res) => res.json())
             .then((data) => setBarbers(data))
             .catch((err) => console.error("Error fetching barbers:", err));
+    };
+
+    // Fetch services from the API
+    const fetchServices = () => {
+        fetch(`${API_BASE_URL}/api/services/list/`)
+            .then((res) => res.json())
+            .then((data) => setServices(data))
+            .catch((err) => console.error("Error fetching services:", err));
     };
 
     useEffect(() => {
@@ -29,7 +42,7 @@ export default function Appointment() {
 
     const fetchAvailableSlots = () => {
         if (selectedBarber && date) {
-            fetch(`${API_BASE_URL}/api/schedule/${selectedBarber}/${date}`)
+            fetch(`${API_BASE_URL}/api/schedule/${selectedBarber}/${date}/`)
                 .then((res) => res.json())
                 .then((data) => setAvailableSlots(data.availableSlots))
                 .catch((err) => console.error("Error fetching slots:", err));
@@ -41,12 +54,15 @@ export default function Appointment() {
         const appointmentTime = `${date}T${selectedSlot}:00`;
         const appointmentData = {
             customerName,
-            customerEmail: phone,
+            customerEmail: email,
+            phone_no: phone,
+            gender,
             appointmentTime,
             barberId: selectedBarber,
-            service,
+            service: selectedService, // send the selected service id
         };
-        fetch(`${API_BASE_URL}/api/appointments`, {
+
+        fetch(`${API_BASE_URL}/api/appointments/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(appointmentData),
@@ -91,14 +107,9 @@ export default function Appointment() {
 
     return (
         <section className="testimonials" id="Appointment">
-            <div
-                className=" valign bg-img bg-fixed"
-
-                data-overlay-dark={0}
-            >
+            <div className="valign bg-img bg-fixed" data-overlay-dark={0}>
                 <div className="container">
                     <div className="row">
-
                         <div className="col-md-12 ">
                             <div className="booking-box">
                                 <div className="head-box text-center">
@@ -107,6 +118,7 @@ export default function Appointment() {
                                 <div className="booking-inner clearfix">
                                     <form className="form1 clearfix" onSubmit={handleSubmit}>
                                         <div className="row">
+                                            {/* Customer Name */}
                                             <div className="col-md-6">
                                                 <div className="input1_wrapper">
                                                     <label>Name</label>
@@ -122,6 +134,23 @@ export default function Appointment() {
                                                     </div>
                                                 </div>
                                             </div>
+                                            {/* Email */}
+                                            <div className="col-md-6">
+                                                <div className="input1_wrapper">
+                                                    <label>Email</label>
+                                                    <div className="input2_inner">
+                                                        <input
+                                                            type="email"
+                                                            className="form-control input"
+                                                            placeholder="Email"
+                                                            value={email}
+                                                            onChange={(e) => setEmail(e.target.value)}
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {/* Phone */}
                                             <div className="col-md-6">
                                                 <div className="input1_wrapper">
                                                     <label>Phone</label>
@@ -137,6 +166,25 @@ export default function Appointment() {
                                                     </div>
                                                 </div>
                                             </div>
+                                            {/* Gender */}
+                                            <div className="col-md-6">
+                                                <div className="select1_wrapper">
+                                                    <label>Gender</label>
+                                                    <div className="input2_inner">
+                                                        <select
+                                                            className="select2 select"
+                                                            value={gender}
+                                                            onChange={(e) => setGender(e.target.value)}
+                                                            required
+                                                        >
+                                                            <option value="">Select Gender</option>
+                                                            <option value="Male">Male</option>
+                                                            <option value="Female">Female</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {/* Date */}
                                             <div className="col-md-6">
                                                 <div className="input1_wrapper">
                                                     <label>Date</label>
@@ -150,6 +198,7 @@ export default function Appointment() {
                                                     />
                                                 </div>
                                             </div>
+                                            {/* Barber Selection */}
                                             <div className="col-md-6">
                                                 <div className="select1_wrapper">
                                                     <label>Choose Barber</label>
@@ -169,6 +218,7 @@ export default function Appointment() {
                                                     </select>
                                                 </div>
                                             </div>
+                                            {/* Available Time Slots */}
                                             {availableSlots.length > 0 && (
                                                 <div className="col-md-6">
                                                     <div className="select1_wrapper">
@@ -190,24 +240,27 @@ export default function Appointment() {
                                                     </div>
                                                 </div>
                                             )}
+                                            {/* Service Selection (Dynamic) */}
                                             <div className="col-md-6">
                                                 <div className="select1_wrapper">
                                                     <label>Services</label>
                                                     <select
                                                         className="select2 select"
                                                         style={{ width: "100%" }}
-                                                        value={service}
-                                                        onChange={(e) => setService(e.target.value)}
+                                                        value={selectedService}
+                                                        onChange={(e) => setSelectedService(e.target.value)}
                                                         required
                                                     >
                                                         <option value="">Select Service</option>
-                                                        <option value="Hair Styling">Hair Styling</option>
-                                                        <option value="Face Mask">Face Mask</option>
-                                                        <option value="Shaving">Shaving</option>
-                                                        <option value="Beard Trimming">Beard Trimming</option>
+                                                        {services.map((serviceItem) => (
+                                                            <option key={serviceItem.id} value={serviceItem.id}>
+                                                                {serviceItem.service_name}
+                                                            </option>
+                                                        ))}
                                                     </select>
                                                 </div>
                                             </div>
+                                            {/* Submit Button */}
                                             <div className="col-md-12">
                                                 <button type="submit" className="btn-form1-submit mt-15">
                                                     Make Appointment

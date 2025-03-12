@@ -61,6 +61,12 @@ p {
     margin-bottom: 15px;
 }
 
+.input1_wrapper {
+    width: 100%;
+    margin-bottom: 15px;
+    position: relative;
+}
+
 h1,
 h2,
 h3,

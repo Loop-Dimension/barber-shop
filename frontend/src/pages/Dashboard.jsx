@@ -10,15 +10,16 @@ import {
     FaCheckCircle,
     FaTimesCircle,
     FaEdit,
-    FaSignOutAlt
+    FaSignOutAlt,
 } from "react-icons/fa";
 import API_BASE_URL from "../api/api";
 
-export default function Dashboard() {
+function Dashboard() {
     const [activeTab, setActiveTab] = useState("barbers");
     const [barbers, setBarbers] = useState([]);
     const [appointments, setAppointments] = useState([]);
     const [queueEntries, setQueueEntries] = useState([]);
+    const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [filterDate, setFilterDate] = useState(new Date());
@@ -29,13 +30,20 @@ export default function Dashboard() {
         start: "09:00",
         end: "17:00",
         slotDuration: 30,
-        availableDays: "Monday,Tuesday,Wednesday,Thursday,Friday"
+        availableDays: "Monday,Tuesday,Wednesday,Thursday,Friday",
+    });
+    const [showServiceModal, setShowServiceModal] = useState(false);
+    const [newService, setNewService] = useState({
+        service_name: "",
+        service_type: "",
+        service_duration: 30,
+        service_price: "",
     });
     const navigate = useNavigate();
+
+    // Updated to retrieve JWT access token from localStorage
     const getAuthConfig = () => {
-        const token = localStorage.getItem("user")
-            ? JSON.parse(localStorage.getItem("user")).idToken
-            : "";
+        const token = localStorage.getItem("accessToken") || "";
         return { headers: { Authorization: `Bearer ${token}` } };
     };
 
@@ -43,13 +51,14 @@ export default function Dashboard() {
         if (activeTab === "barbers") fetchBarbers();
         if (activeTab === "appointments") fetchAppointments(filterDate);
         if (activeTab === "queue") fetchQueueEntries();
+        if (activeTab === "services") fetchServices();
     }, [activeTab, filterDate]);
 
     const fetchBarbers = async () => {
         try {
             setLoading(true);
             setError(null);
-            const res = await axios.get(`${API_BASE_URL}/api/barbers`, getAuthConfig());
+            const res = await axios.get(`${API_BASE_URL}/api/barbers/list/`, getAuthConfig());
             setBarbers(res.data);
         } catch (err) {
             setError("Failed to load barbers. Please try again.");
@@ -63,7 +72,7 @@ export default function Dashboard() {
             setLoading(true);
             setError(null);
             const formattedDate = date.toISOString().split("T")[0];
-            const res = await axios.get(`${API_BASE_URL}/api/appointments/${formattedDate}`, getAuthConfig());
+            const res = await axios.get(`${API_BASE_URL}/api/appointments/${formattedDate}/`, getAuthConfig());
             setAppointments(res.data);
         } catch (err) {
             setError("Failed to load appointments. Please try again.");
@@ -76,10 +85,23 @@ export default function Dashboard() {
         try {
             setLoading(true);
             setError(null);
-            const res = await axios.get(`${API_BASE_URL}/api/queue`, getAuthConfig());
+            const res = await axios.get(`${API_BASE_URL}/api/queue/list/`, getAuthConfig());
             setQueueEntries(res.data);
         } catch (err) {
             setError("Failed to load queue entries. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchServices = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const res = await axios.get(`${API_BASE_URL}/api/services/list/`, getAuthConfig());
+            setServices(res.data);
+        } catch (err) {
+            setError("Failed to load services. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -95,11 +117,11 @@ export default function Dashboard() {
                 workingHours: {
                     start: newBarber.start,
                     end: newBarber.end,
-                    slotDuration: parseInt(newBarber.slotDuration, 10)
+                    slotDuration: parseInt(newBarber.slotDuration, 10),
                 },
-                availableDays: newBarber.availableDays.split(",").map((day) => day.trim())
+                availableDays: newBarber.available_days.split(",").map((day) => day.trim()),
             };
-            await axios.post(`${API_BASE_URL}/api/barbers`, payload, getAuthConfig());
+            await axios.post(`${API_BASE_URL}/api/barbers/`, payload, getAuthConfig());
             setShowBarberModal(false);
             setNewBarber({
                 name: "",
@@ -107,7 +129,7 @@ export default function Dashboard() {
                 start: "09:00",
                 end: "17:00",
                 slotDuration: 30,
-                availableDays: "Monday,Tuesday,Wednesday,Thursday,Friday"
+                availableDays: "Monday,Tuesday,Wednesday,Thursday,Friday",
             });
             fetchBarbers();
         } catch (err) {
@@ -122,7 +144,7 @@ export default function Dashboard() {
             try {
                 setLoading(true);
                 setError(null);
-                await axios.delete(`${API_BASE_URL}/api/barbers/${id}`, getAuthConfig());
+                await axios.delete(`${API_BASE_URL}/api/barbers/${id}/`, getAuthConfig());
                 fetchBarbers();
             } catch (err) {
                 setError("Failed to delete barber. Please try again.");
@@ -136,7 +158,7 @@ export default function Dashboard() {
         try {
             setLoading(true);
             setError(null);
-            await axios.post(`${API_BASE_URL}/api/appointments/complete/${id}`, {}, getAuthConfig());
+            await axios.post(`${API_BASE_URL}/api/appointments/complete/${id}/`, {}, getAuthConfig());
             fetchAppointments(filterDate);
         } catch (err) {
             setError("Failed to mark appointment as complete.");
@@ -149,7 +171,7 @@ export default function Dashboard() {
         try {
             setLoading(true);
             setError(null);
-            await axios.post(`${API_BASE_URL}/api/appointments/cancel/${id}`, {}, getAuthConfig());
+            await axios.post(`${API_BASE_URL}/api/appointments/cancel/${id}/`, {}, getAuthConfig());
             fetchAppointments(filterDate);
         } catch (err) {
             setError("Failed to cancel appointment.");
@@ -163,7 +185,7 @@ export default function Dashboard() {
             try {
                 setLoading(true);
                 setError(null);
-                await axios.delete(`${API_BASE_URL}/api/appointments/${id}`, getAuthConfig());
+                await axios.delete(`${API_BASE_URL}/api/appointments/${id}/`, getAuthConfig());
                 fetchAppointments(filterDate);
             } catch (err) {
                 setError("Failed to delete appointment.");
@@ -179,7 +201,7 @@ export default function Dashboard() {
             try {
                 setLoading(true);
                 setError(null);
-                await axios.post(`${API_BASE_URL}/api/appointments/reschedule/${id}`, { newAppointmentTime: newTime }, getAuthConfig());
+                await axios.post(`${API_BASE_URL}/api/appointments/reschedule/${id}/`, { newAppointmentTime: newTime }, getAuthConfig());
                 fetchAppointments(filterDate);
             } catch (err) {
                 setError("Failed to reschedule appointment.");
@@ -194,7 +216,7 @@ export default function Dashboard() {
             try {
                 setLoading(true);
                 setError(null);
-                await axios.delete(`${API_BASE_URL}/api/queue/${id}`, getAuthConfig());
+                await axios.delete(`${API_BASE_URL}/api/queue/${id}/`, getAuthConfig());
                 fetchQueueEntries();
             } catch (err) {
                 setError("Failed to delete queue entry.");
@@ -208,7 +230,7 @@ export default function Dashboard() {
         try {
             setLoading(true);
             setError(null);
-            await axios.post(`${API_BASE_URL}/api/queue/complete/${id}`, {}, getAuthConfig());
+            await axios.post(`${API_BASE_URL}/api/queue/complete/${id}/`, {}, getAuthConfig());
             fetchQueueEntries();
         } catch (err) {
             setError("Failed to mark queue entry as complete.");
@@ -221,12 +243,70 @@ export default function Dashboard() {
         try {
             setLoading(true);
             setError(null);
-            await axios.post(`${API_BASE_URL}/api/queue/cancel/${id}`, {}, getAuthConfig());
+            await axios.post(`${API_BASE_URL}/api/queue/cancel/${id}/`, {}, getAuthConfig());
             fetchQueueEntries();
         } catch (err) {
             setError("Failed to cancel queue entry.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleAddService = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const payload = {
+                service_name: newService.service_name,
+                service_type: newService.service_type,
+                service_duration: parseInt(newService.service_duration, 10),
+                service_price: parseFloat(newService.service_price),
+            };
+            await axios.post(`${API_BASE_URL}/api/services/`, payload, getAuthConfig());
+            setShowServiceModal(false);
+            setNewService({
+                service_name: "",
+                service_type: "",
+                service_duration: 30,
+                service_price: "",
+            });
+            fetchServices();
+        } catch (err) {
+            setError("Failed to add service. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteService = async (id) => {
+        if (window.confirm("Are you sure you want to delete this service?")) {
+            try {
+                setLoading(true);
+                setError(null);
+                await axios.delete(`${API_BASE_URL}/api/services/${id}/`, getAuthConfig());
+                fetchServices();
+            } catch (err) {
+                setError("Failed to delete service. Please try again.");
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const handleUpdateService = async (id) => {
+        const updatedName = prompt("Enter new service name:");
+        if (updatedName) {
+            try {
+                setLoading(true);
+                setError(null);
+                const payload = { service_name: updatedName };
+                await axios.put(`${API_BASE_URL}/api/services/update/${id}/`, payload, getAuthConfig());
+                fetchServices();
+            } catch (err) {
+                setError("Failed to update service. Please try again.");
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -256,6 +336,11 @@ export default function Dashboard() {
                 <li className="nav-item mb-3">
                     <button className={`btn btn-${activeTab === "queue" ? "primary" : "outline-light"} w-100 d-flex align-items-center`} onClick={() => setActiveTab("queue")}>
                         <FaList className="me-3" /> Queue
+                    </button>
+                </li>
+                <li className="nav-item mb-3">
+                    <button className={`btn btn-${activeTab === "services" ? "primary" : "outline-light"} w-100 d-flex align-items-center`} onClick={() => setActiveTab("services")}>
+                        <FaList className="me-3" /> Services
                     </button>
                 </li>
             </ul>
@@ -301,7 +386,8 @@ export default function Dashboard() {
                                     </Card.Text>
                                     <Card.Text>
                                         <strong>Available Days:</strong><br />
-                                        {barber.availableDays.join(", ")}
+                                        {(barber.availableDays ? barber.availableDays.split(",") : []).join(", ")}
+
                                     </Card.Text>
                                 </Card.Body>
                                 <Card.Footer className="d-grid">
@@ -448,7 +534,6 @@ export default function Dashboard() {
     };
 
     const QueueTab = () => {
-        // Sort queue entries by their computed position (assumed to be provided by the backend)
         const sortedQueueEntries = queueEntries.sort((a, b) => a.position - b.position);
         return (
             <div className="animate__animated animate__fadeIn">
@@ -517,6 +602,125 @@ export default function Dashboard() {
         );
     };
 
+    const ServicesTab = () => (
+        <div className="animate__animated animate__fadeIn">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2>Services</h2>
+                <button className="btn btn-success" onClick={() => setShowServiceModal(true)}>
+                    <FaPlus className="me-2" /> Add Service
+                </button>
+            </div>
+            {error && <Alert variant="danger">{error}</Alert>}
+            {loading ? (
+                <div className="text-center py-5">
+                    <Spinner animation="border" variant="light" />
+                </div>
+            ) : services.length === 0 ? (
+                <Alert variant="info">No services found.</Alert>
+            ) : (
+                <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+                    {services.map((serviceItem) => (
+                        <div key={serviceItem.id} className="col">
+                            <Card className="h-100 bg-dark text-white border-primary">
+                                <Card.Header className="d-flex justify-content-between align-items-center">
+                                    <h5 className="mb-0">{serviceItem.service_name}</h5>
+                                    <Badge bg="info">{serviceItem.service_duration} min</Badge>
+                                </Card.Header>
+                                <Card.Body>
+                                    <Card.Text>
+                                        <strong>Type:</strong> {serviceItem.service_type}<br />
+                                        <strong>Price:</strong> ${serviceItem.service_price}
+                                    </Card.Text>
+                                </Card.Body>
+                                <Card.Footer className="d-grid">
+                                    <Button variant="outline-warning" size="sm" onClick={() => handleUpdateService(serviceItem.id)} title="Edit Service">
+                                        <FaEdit className="me-2" /> Edit
+                                    </Button>
+                                    <Button variant="outline-danger" size="sm" onClick={() => handleDeleteService(serviceItem.id)} title="Delete Service">
+                                        <FaTrash className="me-2" /> Delete
+                                    </Button>
+                                </Card.Footer>
+                            </Card>
+                        </div>
+                    ))}
+                </div>
+            )}
+            <Modal show={showServiceModal} onHide={() => setShowServiceModal(false)} centered backdrop="static">
+                <Modal.Header closeButton className="bg-dark text-white">
+                    <Modal.Title>
+                        <FaPlus className="me-2" /> Add Service
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="bg-dark text-white">
+                    <Form onSubmit={(e) => e.preventDefault()}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Service Name</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={newService.service_name}
+                                onChange={(e) => setNewService({ ...newService, service_name: e.target.value })}
+                                placeholder="Enter service name"
+                                className="bg-dark text-white"
+                                required
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Service Type</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={newService.service_type}
+                                onChange={(e) => setNewService({ ...newService, service_type: e.target.value })}
+                                placeholder="Enter service type"
+                                className="bg-dark text-white"
+                                required
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Service Duration (minutes)</Form.Label>
+                            <Form.Control
+                                type="number"
+                                value={newService.service_duration}
+                                onChange={(e) => setNewService({ ...newService, service_duration: e.target.value })}
+                                placeholder="Enter service duration"
+                                className="bg-dark text-white"
+                                required
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Service Price</Form.Label>
+                            <Form.Control
+                                type="number"
+                                value={newService.service_price}
+                                onChange={(e) => setNewService({ ...newService, service_price: e.target.value })}
+                                placeholder="Enter service price"
+                                className="bg-dark text-white"
+                                required
+                            />
+                        </Form.Group>
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer className="bg-dark text-white">
+                    <Button variant="secondary" onClick={() => setShowServiceModal(false)}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="primary"
+                        onClick={handleAddService}
+                        disabled={loading || !newService.service_name || !newService.service_type}
+                    >
+                        {loading ? (
+                            <>
+                                <Spinner animation="border" size="sm" className="me-2" /> Saving...
+                            </>
+                        ) : (
+                            <>Add Service</>
+                        )}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+        </div>
+    );
+
     const renderContent = () => {
         switch (activeTab) {
             case "barbers":
@@ -525,6 +729,8 @@ export default function Dashboard() {
                 return <AppointmentsTab />;
             case "queue":
                 return <QueueTab />;
+            case "services":
+                return <ServicesTab />;
             default:
                 return <BarbersTab />;
         }
@@ -539,3 +745,5 @@ export default function Dashboard() {
         </div>
     );
 }
+
+export default Dashboard;
