@@ -82,7 +82,7 @@ def cancel_appointment(request, appointment_id):
 def reschedule_appointment(request, appointment_id):
     """
     POST /api/appointments/reschedule/<id>
-    Expects: { "newAppointmentTime": "2025-03-12T11:30:00" }
+    Expects: { "newAppointmentTime": "2025-03-20T09:00:00" }
     """
     data = request.data
     try:
@@ -91,7 +91,10 @@ def reschedule_appointment(request, appointment_id):
         return Response({"error": "Appointment not found"}, status=status.HTTP_404_NOT_FOUND)
     
     new_time_str = data['newAppointmentTime']
-    dt_obj = datetime.fromisoformat(new_time_str)
+    try:
+        dt_obj = datetime.strptime(new_time_str, "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return Response({"error": "Invalid date format"}, status=status.HTTP_400_BAD_REQUEST)
     new_date = dt_obj.date()
 
     new_position = calculate_position(new_date)
@@ -161,5 +164,4 @@ def get_single_appointment(request, appointment_id):
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Appointment.DoesNotExist:
         return Response({"error": "Appointment not found"}, status=status.HTTP_404_NOT_FOUND)
-    
     
