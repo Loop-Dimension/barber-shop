@@ -147,3 +147,19 @@ def get_appointments_by_date(request, date_str):
 
     serializer = AppointmentSerializer(appointments, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_single_appointment(request, appointment_id):
+    """
+    GET /api/appointments/<id>
+    """
+    try:
+        appointment = Appointment.objects.get(id=appointment_id)
+        serializer = AppointmentSerializer(appointment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Appointment.DoesNotExist:
+        return Response({"error": "Appointment not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    

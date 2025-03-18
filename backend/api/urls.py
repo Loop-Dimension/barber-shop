@@ -12,7 +12,7 @@ from rest_framework_simplejwt.views import (
 from .views_schedule import get_available_slots
 from .views_appointment import (
     create_appointment, cancel_appointment, reschedule_appointment,
-    complete_appointment, delete_appointment, get_appointments_by_date
+    complete_appointment, delete_appointment, get_appointments_by_date, get_single_appointment
 )
 from .views_service import create_service, get_services, delete_service, update_service
 
@@ -44,6 +44,8 @@ urlpatterns = [
 
     # Appointments
     path('appointments/', create_appointment, name='create_appointment'),  # POST
+    # by id
+    path('appointments/<int:appointment_id>/', get_single_appointment, name='get_single_appointment'),
     path('appointments/cancel/<int:appointment_id>/', cancel_appointment, name='cancel_appointment'),
     path('appointments/reschedule/<int:appointment_id>/', reschedule_appointment, name='reschedule_appointment'),
     path('appointments/complete/<int:appointment_id>/', complete_appointment, name='complete_appointment'),
